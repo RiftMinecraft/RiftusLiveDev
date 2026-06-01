@@ -1,0 +1,8 @@
+name: RiftusLiveDev
+version: '${version}'
+main: pl.fanth.riftuslivedev.RiftusLiveDev
+api-version: '1.20'
+authors: [EpicPlayerA10]
+website: https://fanth.pl
+depend:
+  - PlugManX
