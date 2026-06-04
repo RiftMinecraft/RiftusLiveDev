@@ -6,3 +6,7 @@ authors: [EpicPlayerA10]
 website: https://fanth.pl
 depend:
   - PlugManX
+permissions:
+    riftuslivedev.broadcastupdate:
+        description: Broadcasts info about plugin update
+        default: op

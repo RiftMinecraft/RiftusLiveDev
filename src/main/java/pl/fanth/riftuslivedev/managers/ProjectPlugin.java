@@ -8,6 +8,7 @@ import org.bukkit.plugin.InvalidPluginException;
 import org.bukkit.plugin.Plugin;
 import pl.fanth.riftuslivedev.RiftusLiveDev;
 import pl.fanth.riftuslivedev.api.RiftusAPIClient;
+import pl.fanth.riftuslivedev.api.RiftusWebSocket;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,12 +20,15 @@ public class ProjectPlugin {
     private final String liveKey;
     private final RiftusAPIClient client;
     private final RiftusAPIClient.ProjectInfo projectInfo;
+    private final RiftusWebSocket webSocket;
     private Plugin plugin;
 
     public ProjectPlugin(String liveKey) {
         this.liveKey = liveKey;
         this.client = new RiftusAPIClient(liveKey);
         this.projectInfo = this.client.getProjectInfo();
+        this.webSocket = new RiftusWebSocket(this);
+        this.webSocket.connect();
     }
 
     public void loadPlugin(boolean serverStartup) {

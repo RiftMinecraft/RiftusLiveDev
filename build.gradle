@@ -41,6 +41,8 @@ dependencies {
 
     implementation("com.squareup.okhttp3:okhttp:5.3.0")
 
+    implementation("org.java-websocket:Java-WebSocket:1.6.0")
+
     implementation "co.aikar:acf-paper:0.5.1-SNAPSHOT"
 
     compileOnly('com.rylinaux:plugman-bukkit:3.0.2') { transitive = false }
