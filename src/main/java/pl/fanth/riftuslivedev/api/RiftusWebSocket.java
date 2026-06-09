@@ -53,7 +53,11 @@ public class RiftusWebSocket extends WebSocketClient {
 
     @Override
     public void onClose(int code, String reason, boolean remote) {
-        RiftusLiveDev.instance().getLogger().info("WebSocket closed for " + this.projectPlugin.projectInfo().name() + "! Reason: " + reason);
+        RiftusLiveDev.instance().getLogger().info("WebSocket closed for " + this.projectPlugin.projectInfo().name() + "! Code: " + code + " Reason: " + reason);
+        if (remote) {
+            // Reconnect
+            this.reconnect();
+        }
     }
 
     @Override
