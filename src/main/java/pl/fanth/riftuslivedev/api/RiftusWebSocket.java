@@ -39,7 +39,7 @@ public class RiftusWebSocket extends WebSocketClient {
         WebSocketData webSocketData = GSON.fromJson(message, WebSocketData.class);
         if (webSocketData.type().equals("artifact_updated")) {
             Bukkit.broadcast(Component.text("Received update for " + this.projectPlugin.projectInfo().name() + "...").color(NamedTextColor.GREEN), "riftuslivedev.broadcastupdate");
-            this.projectPlugin.loadPlugin(false);
+            this.projectPlugin.downloadAndLoadPlugin(false);
             Bukkit.broadcast(Component.text("Plugin " + this.projectPlugin.projectInfo().name() + " has been updated!").color(NamedTextColor.GREEN), "riftuslivedev.broadcastupdate");
 
             // Play sound

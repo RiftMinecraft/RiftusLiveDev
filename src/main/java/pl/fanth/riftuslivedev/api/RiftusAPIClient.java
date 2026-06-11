@@ -5,6 +5,7 @@ import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import org.jetbrains.annotations.Blocking;
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NonNull;
 import pl.fanth.riftuslivedev.RiftusLiveDev;
@@ -39,6 +40,7 @@ public class RiftusAPIClient {
     /**
      * Gets project info
      */
+    @Blocking
     public ProjectInfo getProjectInfo() {
         Request request = new Request.Builder()
             .url(getBaseUrl() + "/live/info")
@@ -61,6 +63,7 @@ public class RiftusAPIClient {
     /**
      * Fetches the artifact
      */
+    @Blocking
     public void downloadArtifact(Path path) {
         Request request = new Request.Builder()
             .url(getBaseUrl() + "/live/artifact")

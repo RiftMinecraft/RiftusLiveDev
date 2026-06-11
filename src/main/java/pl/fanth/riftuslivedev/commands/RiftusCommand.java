@@ -45,7 +45,7 @@ public class RiftusCommand extends BaseCommand {
     @CommandCompletion("@projects")
     public void updateArtifact(CommandSender sender, ProjectPlugin projectPlugin) {
         sender.sendMessage(Component.text("Updating plugin...").color(NamedTextColor.GREEN));
-        projectPlugin.loadPlugin(false);
+        projectPlugin.downloadAndLoadPlugin(false);
         sender.sendMessage(Component.text("Updated plugin!").color(NamedTextColor.GREEN));
         if (sender instanceof Player player) {
             player.playSound(Sound.sound(Key.key("minecraft:entity.player.levelup"), Sound.Source.MASTER, 1.0f, 2.0f));

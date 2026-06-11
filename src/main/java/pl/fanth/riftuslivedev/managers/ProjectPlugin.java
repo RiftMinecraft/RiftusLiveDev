@@ -6,13 +6,11 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.InvalidDescriptionException;
 import org.bukkit.plugin.InvalidPluginException;
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.Blocking;
 import pl.fanth.riftuslivedev.RiftusLiveDev;
 import pl.fanth.riftuslivedev.api.RiftusAPIClient;
 import pl.fanth.riftuslivedev.api.RiftusWebSocket;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.logging.Level;
 
@@ -23,6 +21,7 @@ public class ProjectPlugin {
     private final RiftusWebSocket webSocket;
     private Plugin plugin;
 
+    @Blocking
     public ProjectPlugin(String liveKey) {
         this.liveKey = liveKey;
         this.client = new RiftusAPIClient(liveKey);
@@ -31,13 +30,19 @@ public class ProjectPlugin {
         this.webSocket.connect();
     }
 
-    public void loadPlugin(boolean serverStartup) {
+    public void downloadAndLoadPlugin(boolean serverStartup) {
         RiftusLiveDev.instance().getLogger().info("Loading plugin " + this.projectInfo.name() + "...");
 
+        // Download artifact
         RiftusLiveDev.instance().getLogger().info("Downloading artifact...");
         this.client.downloadArtifact(this.getArtifactPath());
         RiftusLiveDev.instance().getLogger().info("Artifact downloaded");
 
+        // Load plugin
+        this.loadPlugin(serverStartup);
+    }
+
+    private void loadPlugin(boolean serverStartup) {
         if (!serverStartup) {
             // Use plugman when in the middle of server running
 
