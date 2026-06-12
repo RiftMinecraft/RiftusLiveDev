@@ -78,6 +78,12 @@ public class ProjectPlugin {
         }
     }
 
+    public void shutdown() {
+        // Stop the websocket (and its reconnect loop) before unloading.
+        this.webSocket.shutdown();
+        this.unloadPlugin();
+    }
+
     public void unloadPlugin() {
         // Unload
         PlugManBukkit plugman = (PlugManBukkit) Bukkit.getPluginManager().getPlugin("PlugManX");

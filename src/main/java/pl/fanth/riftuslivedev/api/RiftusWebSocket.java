@@ -14,17 +14,28 @@ import pl.fanth.riftuslivedev.managers.ProjectPlugin;
 
 import java.net.URI;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 
 public class RiftusWebSocket extends WebSocketClient {
     private static final Gson GSON = new Gson();
+    private static final long RECONNECT_DELAY_MS = 10_000;
+    private static final int CONNECTION_LOST_TIMEOUT_SECONDS = 60;
+
     private final ProjectPlugin projectPlugin;
+    // Ensures only a single reconnect loop runs at any given time.
+    private final AtomicBoolean reconnecting = new AtomicBoolean(false);
+    // When false, the plugin is shutting down - stop trying to reconnect.
+    private volatile boolean shouldReconnect = true;
 
     public RiftusWebSocket(ProjectPlugin projectPlugin) {
         super(URI.create(getBaseUrl() + "/live/ws"), Map.of(
             "x-live-key", projectPlugin.liveKey()
         ));
         this.projectPlugin = projectPlugin;
+        // Enables ping/pong so a dead (silently dropped) connection is detected
+        // and triggers onClose instead of hanging forever.
+        this.setConnectionLostTimeout(CONNECTION_LOST_TIMEOUT_SECONDS);
     }
 
     @Override
@@ -53,25 +64,78 @@ public class RiftusWebSocket extends WebSocketClient {
 
     @Override
     public void onClose(int code, String reason, boolean remote) {
-        RiftusLiveDev.instance().getLogger().warning("WebSocket closed for " + this.projectPlugin.projectInfo().name() + "! Code: " + code + " Reason: " + reason);
-        if (remote) {
-            RiftusLiveDev.instance().getLogger().warning("Reconnecting in 10 seconds...");
-            new Thread(() -> {
-                try {
-                    Thread.sleep(10000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                RiftusLiveDev.instance().getLogger().warning("Reconnecting now...");
-                // Reconnect
-                this.reconnect();
-            }).start();
-        }
+        RiftusLiveDev.instance().getLogger().warning("WebSocket closed for " + this.projectPlugin.projectInfo().name() + "! Code: " + code + " Reason: " + reason + " (remote: " + remote + ")");
+        scheduleReconnect();
     }
 
     @Override
     public void onError(Exception ex) {
         RiftusLiveDev.instance().getLogger().log(Level.SEVERE, "WebSocket error for " + this.projectPlugin.projectInfo().name(), ex);
+        // onError usually precedes onClose, but when the error happens during the
+        // initial connect, onClose is not always delivered - so retry here too.
+        scheduleReconnect();
+    }
+
+    /**
+     * Permanently stops reconnecting and closes the websocket.
+     * Called when the plugin is shutting down.
+     */
+    public void shutdown() {
+        this.shouldReconnect = false;
+        this.close();
+    }
+
+    /**
+     * Starts the reconnect loop on a separate thread (if not already running).
+     * The reconnecting guard prevents repeated onClose/onError from spawning many threads.
+     */
+    private void scheduleReconnect() {
+        if (!shouldReconnect) {
+            return;
+        }
+        // A loop is already running - do not start another one.
+        if (!reconnecting.compareAndSet(false, true)) {
+            return;
+        }
+
+        Thread thread = new Thread(this::reconnectLoop, "RiftusWS-Reconnect-" + projectPlugin.projectInfo().name());
+        thread.setDaemon(true);
+        thread.start();
+    }
+
+    private void reconnectLoop() {
+        try {
+            while (shouldReconnect && !isOpen()) {
+                try {
+                    Thread.sleep(RECONNECT_DELAY_MS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+
+                if (!shouldReconnect) {
+                    return;
+                }
+
+                RiftusLiveDev.instance().getLogger().warning("Reconnecting WebSocket for " + this.projectPlugin.projectInfo().name() + "...");
+                try {
+                    // reconnectBlocking resets the client state and waits for the connect result.
+                    boolean connected = reconnectBlocking();
+                    if (connected) {
+                        RiftusLiveDev.instance().getLogger().info("WebSocket reconnected for " + this.projectPlugin.projectInfo().name());
+                        return;
+                    }
+                    RiftusLiveDev.instance().getLogger().warning("Reconnect attempt failed for " + this.projectPlugin.projectInfo().name() + ", retrying in " + (RECONNECT_DELAY_MS / 1000) + "s...");
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return;
+                } catch (Exception e) {
+                    RiftusLiveDev.instance().getLogger().log(Level.WARNING, "Reconnect attempt errored for " + this.projectPlugin.projectInfo().name() + ", retrying in " + (RECONNECT_DELAY_MS / 1000) + "s...", e);
+                }
+            }
+        } finally {
+            reconnecting.set(false);
+        }
     }
 
     public static String getBaseUrl() {

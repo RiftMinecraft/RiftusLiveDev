@@ -37,7 +37,7 @@ public final class RiftusLiveDev extends JavaPlugin {
     public void onDisable() {
         // Plugin shutdown logic
         for (ProjectPlugin projectPlugin : ProjectManager.getProjectPlugins()) {
-            projectPlugin.unloadPlugin();
+            projectPlugin.shutdown();
         }
     }
 
