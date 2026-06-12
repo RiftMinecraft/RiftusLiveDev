@@ -84,7 +84,7 @@ public class RiftusCommand extends BaseCommand {
     public void removePlugin(CommandSender sender, ProjectPlugin projectPlugin) {
         sender.sendMessage(Component.text("Unloading plugin...").color(NamedTextColor.GREEN));
 
-        projectPlugin.unloadPlugin();
+        projectPlugin.shutdown();
         ProjectManager.removeProjectPlugin(projectPlugin.projectInfo().name());
 
         RiftusLiveDev.instance().pluginConfiguration().liveKeys.remove(projectPlugin.liveKey());
