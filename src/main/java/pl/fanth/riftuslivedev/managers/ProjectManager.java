@@ -2,6 +2,8 @@ package pl.fanth.riftuslivedev.managers;
 
 import org.jetbrains.annotations.Blocking;
 import org.jetbrains.annotations.Nullable;
+import pl.fanth.riftuslivedev.api.ApiException;
+import pl.fanth.riftuslivedev.api.RiftusAPIClient;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -12,8 +14,21 @@ public class ProjectManager {
     private static final Map<String, ProjectPlugin> PROJECT_PLUGIN_MAP = new HashMap<>(); // project name -> plugin
 
     @Blocking
+    @Nullable
     public static ProjectPlugin addLiveKeyAndLoad(String liveKey, boolean serverStartup) {
-        ProjectPlugin projectPlugin = new ProjectPlugin(liveKey);
+        RiftusAPIClient client = new RiftusAPIClient(liveKey);
+        RiftusAPIClient.ProjectInfo projectInfo;
+        try {
+            projectInfo = client.getProjectInfo();
+        } catch (ApiException e) {
+            if (e.getStatusCode() == 401) {
+                // Live key is invalid
+                return null;
+            }
+            throw new RuntimeException(e);
+        }
+
+        ProjectPlugin projectPlugin = new ProjectPlugin(client, projectInfo);
         PROJECT_PLUGIN_MAP.put(projectPlugin.projectInfo().name(), projectPlugin);
         projectPlugin.downloadAndLoadPlugin(serverStartup);
 

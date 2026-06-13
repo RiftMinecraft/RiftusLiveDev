@@ -41,7 +41,7 @@ public class RiftusAPIClient {
      * Gets project info
      */
     @Blocking
-    public ProjectInfo getProjectInfo() {
+    public ProjectInfo getProjectInfo() throws ApiException {
         Request request = new Request.Builder()
             .url(getBaseUrl() + "/live/info")
             .get()
@@ -55,7 +55,7 @@ public class RiftusAPIClient {
 
             String responseBody = response.body().string();
             return GSON.fromJson(responseBody, ProjectInfo.class);
-        } catch (IOException | ApiException e) {
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
@@ -82,6 +82,10 @@ public class RiftusAPIClient {
         } catch (IOException | ApiException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public String liveKey() {
+        return liveKey;
     }
 
     public static String getBaseUrl() {

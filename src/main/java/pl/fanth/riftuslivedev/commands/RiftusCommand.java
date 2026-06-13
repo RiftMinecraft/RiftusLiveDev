@@ -33,6 +33,10 @@ public class RiftusCommand extends BaseCommand {
     @CommandPermission("riftus.admin.addplugin")
     public void addPlugin(CommandSender sender, String liveKey) {
         ProjectPlugin projectPlugin = ProjectManager.addLiveKeyAndLoad(liveKey, false);
+        if (projectPlugin == null) {
+            sender.sendMessage(Component.text("Invalid live key!").color(NamedTextColor.RED));
+            return;
+        }
         RiftusLiveDev.instance().pluginConfiguration().liveKeys.add(liveKey);
         RiftusLiveDev.instance().pluginConfiguration().save();
 
@@ -87,7 +91,7 @@ public class RiftusCommand extends BaseCommand {
         projectPlugin.shutdown();
         ProjectManager.removeProjectPlugin(projectPlugin.projectInfo().name());
 
-        RiftusLiveDev.instance().pluginConfiguration().liveKeys.remove(projectPlugin.liveKey());
+        RiftusLiveDev.instance().pluginConfiguration().liveKeys.remove(projectPlugin.client().liveKey());
         RiftusLiveDev.instance().pluginConfiguration().save();
 
         sender.sendMessage(Component.text("Unloaded plugin '" + projectPlugin.projectInfo().name() + "'").color(NamedTextColor.GREEN));

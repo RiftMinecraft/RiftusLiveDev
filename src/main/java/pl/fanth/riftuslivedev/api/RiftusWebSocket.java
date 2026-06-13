@@ -8,6 +8,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.framing.CloseFrame;
 import org.java_websocket.handshake.ServerHandshake;
 import pl.fanth.riftuslivedev.RiftusLiveDev;
 import pl.fanth.riftuslivedev.managers.ProjectPlugin;
@@ -30,7 +31,7 @@ public class RiftusWebSocket extends WebSocketClient {
 
     public RiftusWebSocket(ProjectPlugin projectPlugin) {
         super(URI.create(getBaseUrl() + "/live/ws"), Map.of(
-            "x-live-key", projectPlugin.liveKey()
+            "x-live-key", projectPlugin.client().liveKey()
         ));
         this.projectPlugin = projectPlugin;
         // Enables ping/pong so a dead (silently dropped) connection is detected
@@ -65,6 +66,11 @@ public class RiftusWebSocket extends WebSocketClient {
     @Override
     public void onClose(int code, String reason, boolean remote) {
         RiftusLiveDev.instance().getLogger().warning("WebSocket closed for " + this.projectPlugin.projectInfo().name() + "! Code: " + code + " Reason: " + reason + " (remote: " + remote + ")");
+        if (code == CloseFrame.PROTOCOL_ERROR && reason.contains("401 Unauthorized")) {
+            // Live key is invalid, close websocket
+            this.shutdown();
+            return;
+        }
         scheduleReconnect();
     }
 

@@ -6,7 +6,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.InvalidDescriptionException;
 import org.bukkit.plugin.InvalidPluginException;
 import org.bukkit.plugin.Plugin;
-import org.jetbrains.annotations.Blocking;
 import pl.fanth.riftuslivedev.RiftusLiveDev;
 import pl.fanth.riftuslivedev.api.RiftusAPIClient;
 import pl.fanth.riftuslivedev.api.RiftusWebSocket;
@@ -15,17 +14,14 @@ import java.nio.file.Path;
 import java.util.logging.Level;
 
 public class ProjectPlugin {
-    private final String liveKey;
     private final RiftusAPIClient client;
     private final RiftusAPIClient.ProjectInfo projectInfo;
     private final RiftusWebSocket webSocket;
     private Plugin plugin;
 
-    @Blocking
-    public ProjectPlugin(String liveKey) {
-        this.liveKey = liveKey;
-        this.client = new RiftusAPIClient(liveKey);
-        this.projectInfo = this.client.getProjectInfo();
+    public ProjectPlugin(RiftusAPIClient client, RiftusAPIClient.ProjectInfo projectInfo) {
+        this.client = client;
+        this.projectInfo = projectInfo;
         this.webSocket = new RiftusWebSocket(this);
         this.webSocket.connect();
     }
@@ -110,9 +106,5 @@ public class ProjectPlugin {
 
     public Plugin plugin() {
         return plugin;
-    }
-
-    public String liveKey() {
-        return liveKey;
     }
 }

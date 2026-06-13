@@ -10,6 +10,8 @@ import pl.fanth.riftuslivedev.managers.ProjectManager;
 import pl.fanth.riftuslivedev.managers.ProjectPlugin;
 
 import java.io.File;
+import java.util.HashSet;
+import java.util.Set;
 
 public final class RiftusLiveDev extends JavaPlugin {
     private PluginConfiguration pluginConfiguration;
@@ -23,9 +25,20 @@ public final class RiftusLiveDev extends JavaPlugin {
         this.pluginConfiguration = ConfigurationFactory.createPluginConfiguration(new File(this.getDataFolder(), "config.yml"));
 
         this.getLogger().info("Loading plugins...");
+        Set<String> toRemove = new HashSet<>();
         for (String liveKey : this.pluginConfiguration.liveKeys) {
-            ProjectManager.addLiveKeyAndLoad(liveKey, true);
+            try {
+                ProjectPlugin projectPlugin = ProjectManager.addLiveKeyAndLoad(liveKey, true);
+                if (projectPlugin == null) {
+                    this.getLogger().warning("Invalid live key. Removing from config...");
+                    toRemove.add(liveKey);
+                }
+            } catch (Exception e) {
+                this.getLogger().log(java.util.logging.Level.SEVERE, "Failed to load plugin for live key: " + liveKey, e);
+            }
         }
+
+        this.pluginConfiguration.liveKeys.removeAll(toRemove);
     }
 
     @Override
