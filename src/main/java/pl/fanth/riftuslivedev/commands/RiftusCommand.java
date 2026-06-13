@@ -15,8 +15,8 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import pl.fanth.riftuslivedev.RiftusLiveDev;
-import pl.fanth.riftuslivedev.managers.ProjectManager;
-import pl.fanth.riftuslivedev.managers.ProjectPlugin;
+import pl.fanth.riftuslivedev.projects.ProjectManager;
+import pl.fanth.riftuslivedev.projects.ProjectPlugin;
 
 import java.util.Collection;
 

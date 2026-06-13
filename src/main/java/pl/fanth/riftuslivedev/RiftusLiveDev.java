@@ -6,8 +6,8 @@ import pl.fanth.riftuslivedev.commands.RiftusCommand;
 import pl.fanth.riftuslivedev.config.ConfigurationFactory;
 import pl.fanth.riftuslivedev.config.PluginConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
-import pl.fanth.riftuslivedev.managers.ProjectManager;
-import pl.fanth.riftuslivedev.managers.ProjectPlugin;
+import pl.fanth.riftuslivedev.projects.ProjectManager;
+import pl.fanth.riftuslivedev.projects.ProjectPlugin;
 
 import java.io.File;
 import java.util.HashSet;

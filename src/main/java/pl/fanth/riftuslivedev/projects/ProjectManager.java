@@ -1,4 +1,4 @@
-package pl.fanth.riftuslivedev.managers;
+package pl.fanth.riftuslivedev.projects;
 
 import org.jetbrains.annotations.Blocking;
 import org.jetbrains.annotations.Nullable;
