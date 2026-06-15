@@ -70,13 +70,18 @@ public class RiftusCommand extends BaseCommand {
         sender.sendMessage(Component.text("Załadowane pluginy (" + projects.size() + "):").color(NamedTextColor.GOLD));
 
         for (ProjectPlugin projectPlugin : projects) {
-            boolean loaded = projectPlugin.plugin() != null;
+            boolean loaded = projectPlugin.pluginName() != null;
             Component status = loaded
                 ? Component.text("● ").color(NamedTextColor.GREEN)
                 : Component.text("● ").color(NamedTextColor.RED);
 
+            String name = projectPlugin.projectInfo().name();
+            if (loaded && !name.equals(projectPlugin.pluginName())) {
+                name += " (" + projectPlugin.pluginName() + ")";
+            }
+
             sender.sendMessage(status
-                .append(Component.text(projectPlugin.projectInfo().name()).color(NamedTextColor.AQUA))
+                .append(Component.text(name).color(NamedTextColor.AQUA))
                 .append(Component.text(loaded ? " (załadowany)" : " (niezaładowany)").color(NamedTextColor.GRAY)));
         }
     }
