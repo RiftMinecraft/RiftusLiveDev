@@ -14,6 +14,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.InvalidDescriptionException;
 import org.bukkit.plugin.InvalidPluginException;
 import org.bukkit.plugin.Plugin;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import pl.fanth.riftuslivedev.RiftusLiveDev;
@@ -127,11 +128,101 @@ public class ProjectPlugin {
                 }
             });
 
+            socket1.on("readFile", args -> {
+                JSONObject data = (JSONObject) args[0];
+                Ack ack = (Ack) args[1];
+                JSONObject response = new JSONObject();
+                try {
+                    Path target = resolveServerPath(data.getString("path"));
+                    String content = Files.readString(target);
+                    response.put("success", true);
+                    response.put("content", content);
+                } catch (Exception e) {
+                    putError(response, e);
+                }
+                ack.call(response);
+            });
+
+            socket1.on("writeFile", args -> {
+                JSONObject data = (JSONObject) args[0];
+                Ack ack = (Ack) args[1];
+                JSONObject response = new JSONObject();
+                try {
+                    Path target = resolveServerPath(data.getString("path"));
+                    if (target.getParent() != null) {
+                        Files.createDirectories(target.getParent());
+                    }
+                    Files.writeString(target, data.getString("content"));
+                    response.put("success", true);
+                } catch (Exception e) {
+                    putError(response, e);
+                }
+                ack.call(response);
+            });
+
+            socket1.on("listFiles", args -> {
+                JSONObject data = (JSONObject) args[0];
+                Ack ack = (Ack) args[1];
+                JSONObject response = new JSONObject();
+                try {
+                    Path target = resolveServerPath(data.getString("path"));
+                    JSONArray entries = new JSONArray();
+                    try (var stream = Files.list(target)) {
+                        for (Path entry : (Iterable<Path>) stream::iterator) {
+                            JSONObject entryObject = new JSONObject();
+                            boolean isDirectory = Files.isDirectory(entry);
+                            entryObject.put("name", entry.getFileName().toString());
+                            entryObject.put("isDirectory", isDirectory);
+                            entryObject.put("size", isDirectory ? 0 : Files.size(entry));
+                            entries.put(entryObject);
+                        }
+                    }
+                    response.put("success", true);
+                    response.put("entries", entries);
+                } catch (Exception e) {
+                    putError(response, e);
+                }
+                ack.call(response);
+            });
+
+            socket1.on("deleteFile", args -> {
+                JSONObject data = (JSONObject) args[0];
+                Ack ack = (Ack) args[1];
+                JSONObject response = new JSONObject();
+                try {
+                    Path target = resolveServerPath(data.getString("path"));
+                    Files.delete(target);
+                    response.put("success", true);
+                } catch (Exception e) {
+                    putError(response, e);
+                }
+                ack.call(response);
+            });
+
             socket1.connect();
 
             return socket1;
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    // Resolves a client-supplied path against the server root and prevents escaping it (path traversal).
+    private Path resolveServerPath(String relativePath) throws IOException {
+        Path root = Paths.get("").toAbsolutePath().normalize();
+        Path resolved = root.resolve(relativePath).normalize();
+        if (!resolved.startsWith(root)) {
+            throw new IOException("Path is outside of the server directory");
+        }
+        return resolved;
+    }
+
+    private void putError(JSONObject response, Exception e) {
+        try {
+            response.put("success", false);
+            response.put("error", e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
+        } catch (JSONException ignored) {
+            // Should never happen with plain string values
         }
     }
 
