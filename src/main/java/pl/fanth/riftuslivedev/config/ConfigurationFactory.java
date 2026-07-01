@@ -1,5 +1,6 @@
 package pl.fanth.riftuslivedev.config;
 
+import eu.okaeri.configs.OkaeriConfig;
 import pl.fanth.riftuslivedev.RiftusLiveDev;
 import eu.okaeri.configs.ConfigManager;
 import eu.okaeri.configs.serdes.commons.SerdesCommons;
@@ -14,16 +15,16 @@ public class ConfigurationFactory {
     private ConfigurationFactory(){
     }
 
-    public static PluginConfiguration createPluginConfiguration(File pluginConfigurationFile) {
-        return ConfigManager.create(PluginConfiguration.class, (it) -> {
-            it.withConfigurer(new OkaeriValidator(new YamlBukkitConfigurer()));
-            it.withSerdesPack(registry -> {
-                registry.register(new SerdesCommons());
-                registry.register(new SerdesBukkit());
+    public static <T extends OkaeriConfig> T createConfiguration(Class<T> clazz, File configurationFile) {
+        return ConfigManager.create(clazz, it -> {
+            it.configure(opt -> {
+                opt.configurer(new YamlBukkitConfigurer(), new SerdesBukkit(), new SerdesCommons());
+                opt.validator(new OkaeriValidator());
+                opt.bindFile(configurationFile); // specify Path, File or pathname
+                opt.removeOrphans(true); // automatic removal of undeclared keys
+                opt.resolvePlaceholders(); // resolve ${VAR} and ${VAR:default} from environment
+                opt.logger(RiftusLiveDev.instance().getLogger());
             });
-
-            it.withBindFile(pluginConfigurationFile);
-            it.withLogger(RiftusLiveDev.instance().getLogger());
             it.saveDefaults();
             it.load(true);
         });

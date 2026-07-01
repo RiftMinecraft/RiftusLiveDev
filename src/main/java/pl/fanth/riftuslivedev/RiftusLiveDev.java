@@ -22,7 +22,7 @@ public final class RiftusLiveDev extends JavaPlugin {
     public void onLoad() {
         instance = this;
 
-        this.pluginConfiguration = ConfigurationFactory.createPluginConfiguration(new File(this.getDataFolder(), "config.yml"));
+        this.pluginConfiguration = ConfigurationFactory.createConfiguration(PluginConfiguration.class, new File(this.getDataFolder(), "config.yml"));
 
         this.getLogger().info("Loading plugins...");
         Set<String> toRemove = new HashSet<>();
