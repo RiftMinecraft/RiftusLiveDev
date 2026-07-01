@@ -1,9 +1,10 @@
 name: RiftusLiveDev
 version: '${version}'
+description: A plugin that connects Riftuś to the Minecraft server offering live development.
 main: pl.fanth.riftuslivedev.RiftusLiveDev
-api-version: '1.20'
+api-version: '1.16'
 authors: [EpicPlayerA10]
-website: https://fanth.pl
+website: https://riftmc.eu
 depend:
   - PlugManX
 permissions:
