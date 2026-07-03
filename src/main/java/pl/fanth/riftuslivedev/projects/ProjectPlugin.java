@@ -1,6 +1,9 @@
 package pl.fanth.riftuslivedev.projects;
 
 import bukkit.com.rylinaux.plugman.PlugManBukkit;
+import com.github.difflib.DiffUtils;
+import com.github.difflib.UnifiedDiffUtils;
+import com.github.difflib.patch.Patch;
 import core.com.rylinaux.plugman.plugins.PluginManager;
 import io.socket.client.Ack;
 import io.socket.client.IO;
@@ -22,12 +25,16 @@ import pl.fanth.riftuslivedev.api.RiftusAPIClient;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 public class ProjectPlugin {
@@ -35,6 +42,8 @@ public class ProjectPlugin {
     private final RiftusAPIClient.ProjectInfo projectInfo;
     private final Socket socket;
     private String pluginName = null;
+    // This is used to prevent writing to file which content changed by something else
+    private final Map<Path, byte[]> fileReadHashes = new ConcurrentHashMap<>();
 
     public ProjectPlugin(RiftusAPIClient client, RiftusAPIClient.ProjectInfo projectInfo) {
         this.client = client;
@@ -135,6 +144,7 @@ public class ProjectPlugin {
                 try {
                     Path target = resolveServerPath(data.getString("path"));
                     String content = Files.readString(target);
+                    this.fileReadHashes.put(target, hashContent(content));
                     response.put("success", true);
                     response.put("content", content);
                 } catch (Exception e) {
@@ -149,11 +159,37 @@ public class ProjectPlugin {
                 JSONObject response = new JSONObject();
                 try {
                     Path target = resolveServerPath(data.getString("path"));
+
+                    String oldContent = "";
+                    boolean existed = Files.exists(target);
+
+                    // Refuse to overwrite a file whose content changed since it was last read
+                    if (existed) {
+                        oldContent = Files.readString(target);
+                        byte[] currentHash = hashContent(oldContent);
+                        byte[] expectedHash = this.fileReadHashes.get(target);
+                        if (expectedHash == null) {
+                            response.put("success", false);
+                            response.put("error", "The file was not read. Read the file first.");
+                            ack.call(response);
+                            return;
+                        }
+                        if (!Arrays.equals(expectedHash, currentHash)) {
+                            response.put("success", false);
+                            response.put("error", "File content changed since it was last read. Read it again.");
+                            ack.call(response);
+                            return;
+                        }
+                    }
+
                     if (target.getParent() != null) {
                         Files.createDirectories(target.getParent());
                     }
-                    Files.writeString(target, data.getString("content"));
+                    String content = data.getString("content");
+                    Files.writeString(target, content);
+                    this.fileReadHashes.put(target, hashContent(content));
                     response.put("success", true);
+                    response.put("diff", generateDiff(oldContent, content));
                 } catch (Exception e) {
                     putError(response, e);
                 }
@@ -192,6 +228,7 @@ public class ProjectPlugin {
                 try {
                     Path target = resolveServerPath(data.getString("path"));
                     Files.delete(target);
+                    this.fileReadHashes.remove(target);
                     response.put("success", true);
                 } catch (Exception e) {
                     putError(response, e);
@@ -215,6 +252,42 @@ public class ProjectPlugin {
             throw new IOException("Path is outside of the server directory");
         }
         return resolved;
+    }
+
+    /**
+     * Builds a unified diff between the old and new content of a written file.
+     *
+     * @param oldContent The content before the write (empty if the file did not exist)
+     * @param newContent The content after the write
+     * @return The unified diff, or an empty string if there are no changes
+     */
+    private String generateDiff(String oldContent, String newContent) {
+        // Remove carriage return
+        oldContent = oldContent.replace("\r", "");
+        newContent = newContent.replace("\r", "");
+
+        List<String> oldLines = oldContent.isEmpty() ? List.of() : Arrays.asList(oldContent.split("\n", -1));
+        List<String> newLines = newContent.isEmpty() ? List.of() : Arrays.asList(newContent.split("\n", -1));
+
+        Patch<String> patch = DiffUtils.diff(oldLines, newLines);
+        List<String> unifiedDiff = UnifiedDiffUtils.generateUnifiedDiff(null, null, oldLines, patch, 3);
+
+        return String.join("\n", unifiedDiff);
+    }
+
+    /**
+     * Computes a SHA-256 hex hash of the given content
+     *
+     * @param content The file content
+     * @return The SHA-256 hash
+     */
+    private byte[] hashContent(String content) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return digest.digest(content.getBytes(StandardCharsets.UTF_8));
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void putError(JSONObject response, Exception e) {
